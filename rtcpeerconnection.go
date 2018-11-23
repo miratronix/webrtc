@@ -752,10 +752,6 @@ func (pc *RTCPeerConnection) Close() error {
 	// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-close (step #4)
 	pc.SignalingState = RTCSignalingStateClosed
 
-	// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-close (step #11)
-	// pc.IceConnectionState = RTCIceConnectionStateClosed
-	pc.IceConnectionState = ice.ConnectionStateClosed // FIXME REMOVE
-
 	// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-close (step #12)
 	pc.ConnectionState = RTCPeerConnectionStateClosed
 

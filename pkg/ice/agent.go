@@ -96,6 +96,7 @@ func NewAgent(notifier func(ConnectionState)) *Agent {
 		tieBreaker:       rand.New(rand.NewSource(time.Now().UnixNano())).Uint64(),
 		gatheringState:   GatheringStateComplete, // TODO trickle-ice
 		connectionState:  ConnectionStateNew,
+		taskLoopChan:     make(chan bool),
 		remoteCandidates: make(map[string]Candidate),
 
 		LocalUfrag: util.RandSeq(16),
@@ -238,6 +239,7 @@ func (a *Agent) taskLoop() {
 			a.Unlock()
 		case <-a.taskLoopChan:
 			t.Stop()
+			a.updateConnectionState(ConnectionStateClosed)
 			return
 		}
 	}
