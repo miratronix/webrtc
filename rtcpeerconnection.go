@@ -152,7 +152,7 @@ func New(configuration RTCConfiguration) (*RTCPeerConnection, error) {
 		return nil, err
 	}
 
-	pc.networkManager, err = network.NewManager(pc.generateChannel, pc.dataChannelEventHandler, pc.iceStateChange)
+	pc.networkManager, err = network.NewManager(pc.generateChannel, pc.dataChannelEventHandler, pc.iceStateChange, configuration.MinPort, configuration.MaxPort)
 	if err != nil {
 		return nil, err
 	}

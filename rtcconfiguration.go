@@ -44,6 +44,9 @@ type RTCConfiguration struct {
 
 	// IceCandidatePoolSize describes the size of the prefetched ICE pool.
 	IceCandidatePoolSize uint8
+
+	MinPort int
+	MaxPort int
 }
 
 func (c RTCConfiguration) getIceServers() (*[]*ice.URL, error) {

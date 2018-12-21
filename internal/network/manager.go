@@ -2,6 +2,8 @@ package network
 
 import (
 	"fmt"
+	"math/rand"
+	"strconv"
 	"sync"
 
 	"github.com/pions/pkg/stun"
@@ -45,7 +47,7 @@ type Manager struct {
 }
 
 // NewManager creates a new network.Manager
-func NewManager(btg BufferTransportGenerator, dcet DataChannelEventHandler, ntf ICENotifier) (m *Manager, err error) {
+func NewManager(btg BufferTransportGenerator, dcet DataChannelEventHandler, ntf ICENotifier, minPort int, maxPort int) (m *Manager, err error) {
 	m = &Manager{
 		iceNotifier:              ntf,
 		bufferTransports:         make(map[uint32]chan<- *rtp.Packet),
@@ -59,9 +61,15 @@ func NewManager(btg BufferTransportGenerator, dcet DataChannelEventHandler, ntf 
 
 	m.sctpAssociation = sctp.NewAssocation(m.dataChannelOutboundHandler, m.dataChannelInboundHandler, m.handleSCTPState)
 
+	// Select a random port from the supplied range
+	port := minPort
+	if maxPort > minPort {
+		port = rand.Intn(maxPort+1-minPort) + minPort
+	}
+
 	m.IceAgent = ice.NewAgent(m.iceNotifier)
 	for _, i := range localInterfaces() {
-		p, portErr := newPort(i+":0", m)
+		p, portErr := newPort(i+":"+strconv.Itoa(port), m)
 		if portErr != nil {
 			return nil, portErr
 		}
