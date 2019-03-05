@@ -16,13 +16,13 @@ import (
 
 const (
 	// taskLoopInterval is the interval at which the agent performs checks
-	taskLoopInterval = 2 * time.Second
+	taskLoopInterval = 1 * time.Second
 
 	// keepaliveInterval used to keep candidates alive
-	keepaliveInterval = 10 * time.Second
+	keepaliveInterval = 2 * time.Second
 
 	// connectionTimeout used to declare a connection dead
-	connectionTimeout = 30 * time.Second
+	connectionTimeout = 5 * time.Second
 )
 
 // Agent represents the ICE agent
