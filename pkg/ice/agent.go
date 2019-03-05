@@ -133,7 +133,7 @@ func (a *Agent) gatherCandidatesLocal() {
 		for _, network := range supportedNetworks {
 			conn, err := net.ListenUDP(network, &net.UDPAddr{IP: ip, Port: port})
 			if err != nil {
-				fmt.Printf("could not listen %s %s\n", network, ip)
+				// fmt.Printf("could not listen %s %s\n", network, ip)
 				continue
 			}
 
