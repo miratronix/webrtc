@@ -341,6 +341,7 @@ func (a *Agent) taskLoop() {
 			t(a)
 
 		case <-a.done:
+			a.updateConnectionState(ConnectionStateClosed)
 			return
 		}
 	}
