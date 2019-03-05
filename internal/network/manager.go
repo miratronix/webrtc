@@ -66,8 +66,8 @@ func (m *Manager) AddTransportPair(ssrc uint32, Rtp chan<- *rtp.Packet, Rtcp cha
 }
 
 // NewManager creates a new network.Manager
-func NewManager(urls []*ice.URL, btg BufferTransportGenerator, ntf ICENotifier) *Manager {
-	iceAgent := ice.NewAgent(urls, ntf)
+func NewManager(urls []*ice.URL, btg BufferTransportGenerator, ntf ICENotifier, minPort int, maxPort int) *Manager {
+	iceAgent := ice.NewAgent(urls, ntf, minPort, maxPort)
 
 	return &Manager{
 		IceAgent:                 iceAgent,

@@ -64,6 +64,9 @@ type Agent struct {
 	// State for closing
 	done chan struct{}
 	err  atomicError
+
+	minPort int
+	maxPort int
 }
 
 type bufIn struct {
@@ -89,7 +92,7 @@ func (a *Agent) getErr() error {
 }
 
 // NewAgent creates a new Agent
-func NewAgent(urls []*URL, notifier func(ConnectionState)) *Agent {
+func NewAgent(urls []*URL, notifier func(ConnectionState), minPort int, maxPort int) *Agent {
 	a := &Agent{
 		notifier:         notifier,
 		tieBreaker:       rand.New(rand.NewSource(time.Now().UnixNano())).Uint64(),
@@ -104,6 +107,9 @@ func NewAgent(urls []*URL, notifier func(ConnectionState)) *Agent {
 		onConnected: make(chan struct{}),
 		rcvCh:       make(chan *bufIn),
 		done:        make(chan struct{}),
+
+		minPort: minPort,
+		maxPort: maxPort,
 	}
 
 	// Initialize local candidates
@@ -115,10 +121,17 @@ func NewAgent(urls []*URL, notifier func(ConnectionState)) *Agent {
 }
 
 func (a *Agent) gatherCandidatesLocal() {
+
+	// Select a random port from the supplied range
+	port := a.minPort
+	if a.maxPort > a.minPort {
+		port = rand.Intn(a.maxPort+1-a.minPort) + a.minPort
+	}
+
 	localIPs := localInterfaces()
 	for _, ip := range localIPs {
 		for _, network := range supportedNetworks {
-			conn, err := net.ListenUDP(network, &net.UDPAddr{IP: ip, Port: 0})
+			conn, err := net.ListenUDP(network, &net.UDPAddr{IP: ip, Port: port})
 			if err != nil {
 				fmt.Printf("could not listen %s %s\n", network, ip)
 				continue
