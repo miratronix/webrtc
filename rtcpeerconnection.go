@@ -779,7 +779,11 @@ func (pc *RTCPeerConnection) acceptDataChannels() {
 	for {
 		dc, err := pc.networkManager.AcceptDataChannel()
 		if err != nil {
-			fmt.Println("Failed to accept data channel:", err)
+
+			if err.Error() != "The association is closed" {
+				fmt.Println("Failed to accept data channel:", err)
+			}
+
 			// TODO: Kill DataChannel/PeerConnection?
 			return
 		}
