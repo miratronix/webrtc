@@ -18,7 +18,7 @@ var supportedNetworks = []string{
 
 var supportedNetworkTypes = []NetworkType{
 	NetworkTypeUDP4,
-	NetworkTypeUDP6,
+	// NetworkTypeUDP6,
 	// NetworkTypeTCP4, // Not supported yet
 	// NetworkTypeTCP6, // Not supported yet
 }
