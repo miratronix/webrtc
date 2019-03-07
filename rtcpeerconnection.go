@@ -734,6 +734,12 @@ func (pc *RTCPeerConnection) SetRemoteDescription(desc RTCSessionDescription) er
 	fingerprintHash = parts[0]
 
 	go func() {
+
+		// Handle panics on start up. This generally happens when the peer is closed while in a checking state
+		defer func() {
+			recover()
+		}()
+
 		cert := pc.configuration.Certificates[0] // TODO: handle multiple certs
 		err := pc.networkManager.Start(weOffer,
 			remoteUfrag, remotePwd,
