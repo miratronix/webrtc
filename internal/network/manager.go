@@ -288,7 +288,7 @@ func (m *Manager) SendRTP(packet *rtp.Packet) {
 	}
 
 	_, err = m.iceConn.Write(raw)
-	if err != nil {
+	if err != nil && err.Error() != "the agent is closed" {
 		fmt.Println("SendRTP failed to write:", err)
 	}
 }
