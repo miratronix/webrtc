@@ -95,7 +95,7 @@ func (c *Candidate) recvLoop() {
 			err = c.agent.run(func(agent *Agent) {
 				agent.handleInbound(m, c, srcAddr)
 			})
-			if err != nil {
+			if err != nil && err.Error() != "the agent is closed" {
 				fmt.Println(fmt.Sprintf("Failed to handle message: %v", err))
 			}
 
