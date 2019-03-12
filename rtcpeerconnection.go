@@ -1285,7 +1285,13 @@ func (pc *RTCPeerConnection) newRTCTrack(payloadType uint8, ssrc uint32, id, lab
 			)
 
 			for {
-				in := <-trackInput
+
+				// Read in the track input, and exit if the channel was closed
+				in, more := <-trackInput
+				if !more {
+					return
+				}
+
 				packets := packetizer.Packetize(in.Data, in.Samples)
 				for _, p := range packets {
 					pc.networkManager.SendRTP(p)
