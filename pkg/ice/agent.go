@@ -598,19 +598,31 @@ func (a *Agent) getBestPair() (*candidatePair, error) {
 	res := make(chan *candidatePair)
 
 	err := a.run(func(agent *Agent) {
+
+		// Close the response channel when we're done. When there are no candidate pairs, nothing will be written to it
+		defer close(res)
+
 		if agent.selectedPair != nil {
 			res <- agent.selectedPair
 			return
 		}
+
 		for _, p := range agent.validPairs {
 			res <- p
 			return
 		}
 	})
 
+	// Handle task starting errors
 	if err != nil {
 		return nil, err
 	}
 
-	return <-res, nil
+	// Handle missing candidate pairs
+	r := <-res
+	if r == nil {
+		return nil, errors.New("no valid candidate pairs")
+	}
+
+	return r, nil
 }
