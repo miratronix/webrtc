@@ -4,13 +4,18 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/pions/pkg/stun"
 )
 
-const receiveMTU = 8192
+const (
+	receiveMTU   = 8192
+	readTimeout  = 500 * time.Millisecond
+	writeTimeout = 500 * time.Millisecond
+)
 
 // Candidate represents an ICE candidate
 type Candidate struct {
@@ -81,9 +86,24 @@ func (c *Candidate) recvLoop() {
 
 	buffer := make([]byte, receiveMTU)
 	for {
+
+		// Attempt to read for 500ms
+		c.conn.SetReadDeadline(time.Now().Add(readTimeout))
 		n, srcAddr, err := c.conn.ReadFrom(buffer)
 		if err != nil {
-			return
+
+			// Not a timeout, kill this receive loop
+			if !strings.HasSuffix(err.Error(), "i/o timeout") {
+				return
+			}
+
+			// Check the close channel before reading again
+			select {
+			case <-c.closeCh:
+				return
+			default:
+				continue
+			}
 		}
 
 		if stun.IsSTUN(buffer[:n]) {
@@ -133,6 +153,7 @@ func (c *Candidate) close() error {
 }
 
 func (c *Candidate) writeTo(raw []byte, dst *Candidate) (int, error) {
+	c.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 	n, err := c.conn.WriteTo(raw, dst.addr())
 	if err != nil {
 		return n, fmt.Errorf("failed to send packet: %v", err)
