@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -688,6 +689,7 @@ func (pc *RTCPeerConnection) SetRemoteDescription(desc RTCSessionDescription) er
 	if err := desc.parsed.Unmarshal(desc.Sdp); err != nil {
 		return err
 	}
+
 	if err := pc.setDescription(&desc, rtcStateChangeOpSetRemote); err != nil {
 		return err
 	}
@@ -698,6 +700,8 @@ func (pc *RTCPeerConnection) SetRemoteDescription(desc RTCSessionDescription) er
 	if desc.Type == RTCSdpTypeOffer {
 		weOffer = false
 	}
+
+	supportedCodecs := map[int]*RTCRtpCodec{}
 
 	for _, m := range pc.RemoteDescription().parsed.MediaDescriptions {
 		for _, a := range m.Attributes {
@@ -714,8 +718,47 @@ func (pc *RTCPeerConnection) SetRemoteDescription(desc RTCSessionDescription) er
 				remoteUfrag = (*a.String())[len("ice-ufrag:"):]
 			} else if strings.HasPrefix(*a.String(), "ice-pwd") {
 				remotePwd = (*a.String())[len("ice-pwd:"):]
+			} else if strings.HasPrefix(*a.String(), "rtpmap") || strings.HasPrefix(*a.String(), "fmtp") {
+				parts := strings.Split(*a.String(), " ")
+				payloadType, _ := strconv.Atoi(strings.Split(parts[0], ":")[1])
+
+				_, has := supportedCodecs[payloadType]
+				if !has {
+					supportedCodecs[payloadType] = &RTCRtpCodec{}
+				}
+
+				// If it's an fmtp, just take the line
+				if strings.HasPrefix(*a.String(), "fmtp") {
+					supportedCodecs[payloadType].SdpFmtpLine = parts[1]
+					continue
+				}
+
+				// Copy the payload type into the codec
+				supportedCodecs[payloadType].PayloadType = uint8(payloadType)
+
+				// Split up the name
+				nameParts := strings.Split(parts[1], "/")
+
+				// Set the codec name
+				supportedCodecs[payloadType].Name = nameParts[0]
+
+				// Set up the clock rate
+				clockRate, _ := strconv.Atoi(nameParts[1])
+				supportedCodecs[payloadType].ClockRate = uint32(clockRate)
+
+				// Set up the channels if applicable
+				if len(nameParts) > 2 {
+					channels, _ := strconv.Atoi(nameParts[2])
+					supportedCodecs[payloadType].Channels = uint16(channels)
+				}
 			}
 		}
+	}
+
+	// Update the payload types
+	err := pc.mediaEngine.updatePayloadTypes(supportedCodecs)
+	if err != nil {
+		return err
 	}
 
 	fingerprint, ok := desc.parsed.Attribute("fingerprint")
@@ -1253,8 +1296,8 @@ func (pc *RTCPeerConnection) addDataMediaSection(d *sdp.SessionDescription, midV
 	d.WithMedia(media)
 }
 
-func (pc *RTCPeerConnection) newRTCTrack(payloadType uint8, ssrc uint32, id, label string) (*RTCTrack, error) {
-	codec, err := pc.mediaEngine.getCodec(payloadType)
+func (pc *RTCPeerConnection) newRTCTrack(codecName string, ssrc uint32, id, label string) (*RTCTrack, error) {
+	codec, err := pc.mediaEngine.getCodec(codecName)
 	if err != nil {
 		return nil, err
 	}
@@ -1277,7 +1320,7 @@ func (pc *RTCPeerConnection) newRTCTrack(payloadType uint8, ssrc uint32, id, lab
 		go func() {
 			packetizer := rtp.NewPacketizer(
 				1400,
-				payloadType,
+				codec.PayloadType,
 				ssrc,
 				codec.Payloader,
 				rtp.NewRandomSequencer(),
@@ -1312,7 +1355,7 @@ func (pc *RTCPeerConnection) newRTCTrack(payloadType uint8, ssrc uint32, id, lab
 	}
 
 	t := &RTCTrack{
-		PayloadType: payloadType,
+		PayloadType: codec.PayloadType,
 		Kind:        codec.Type,
 		ID:          id,
 		Label:       label,
@@ -1332,23 +1375,23 @@ func (pc *RTCPeerConnection) newRTCTrack(payloadType uint8, ssrc uint32, id, lab
 //
 // NB: If the source RTP stream is being broadcast to multiple tracks, each track
 // must receive its own copies of the source packets in order to avoid packet corruption.
-func (pc *RTCPeerConnection) NewRawRTPTrack(payloadType uint8, ssrc uint32, id, label string) (*RTCTrack, error) {
+func (pc *RTCPeerConnection) NewRawRTPTrack(codecName string, ssrc uint32, id, label string) (*RTCTrack, error) {
 	if ssrc == 0 {
 		return nil, errors.New("SSRC supplied to NewRawRTPTrack() must be non-zero")
 	}
-	return pc.newRTCTrack(payloadType, ssrc, id, label)
+	return pc.newRTCTrack(codecName, ssrc, id, label)
 }
 
 // NewRTCSampleTrack initializes a new *RTCTrack configured to accept media.RTCSample
-func (pc *RTCPeerConnection) NewRTCSampleTrack(payloadType uint8, id, label string) (*RTCTrack, error) {
-	return pc.newRTCTrack(payloadType, 0, id, label)
+func (pc *RTCPeerConnection) NewRTCSampleTrack(codecName string, id, label string) (*RTCTrack, error) {
+	return pc.newRTCTrack(codecName, 0, id, label)
 }
 
 // NewRTCTrack is used to create a new RTCTrack
 //
 // Deprecated: Use NewRTCSampleTrack() instead
-func (pc *RTCPeerConnection) NewRTCTrack(payloadType uint8, id, label string) (*RTCTrack, error) {
-	return pc.NewRTCSampleTrack(payloadType, id, label)
+func (pc *RTCPeerConnection) NewRTCTrack(codecName string, id, label string) (*RTCTrack, error) {
+	return pc.NewRTCSampleTrack(codecName, id, label)
 }
 
 func (pc *RTCPeerConnection) newRTCRtpTransceiver(
