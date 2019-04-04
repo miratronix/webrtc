@@ -1,4 +1,4 @@
-module github.com/pions/webrtc
+module github.com/miratronix/webrtc
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
