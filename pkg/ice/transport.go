@@ -27,7 +27,17 @@ type Conn struct {
 	agent *Agent
 }
 
+func (c *Conn) AwaitConnection() error {
+	select {
+	case <-c.agent.onConnected:
+		return nil
+	case <-c.agent.done:
+		return errors.New("agent closed")
+	}
+}
+
 func (a *Agent) connect(ctx context.Context, isControlling bool, remoteUfrag, remotePwd string) (*Conn, error) {
+
 	err := a.ok()
 	if err != nil {
 		return nil, err
@@ -38,14 +48,6 @@ func (a *Agent) connect(ctx context.Context, isControlling bool, remoteUfrag, re
 	err = a.startConnectivityChecks(isControlling, remoteUfrag, remotePwd)
 	if err != nil {
 		return nil, err
-	}
-
-	// block until pair selected
-	select {
-	case <-ctx.Done():
-		// TODO: Stop connectivity checks?
-		return nil, errors.New("connecting canceled by caller")
-	case <-a.onConnected:
 	}
 
 	return &Conn{

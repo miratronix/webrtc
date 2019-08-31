@@ -107,6 +107,15 @@ func (m *Manager) Start(isOffer bool,
 	}
 
 	m.mux = mux.NewMux(m.iceConn, receiveMTU)
+
+	// Wait for ICE to be established
+	err := m.iceConn.AwaitConnection()
+	if err != nil {
+		return err
+	}
+
+	m.mux.StartReading()
+
 	m.dtlsEndpoint = m.mux.NewEndpoint(mux.MatchDTLS)
 	m.srtpEndpoint = m.mux.NewEndpoint(mux.MatchSRTP)
 

@@ -137,6 +137,7 @@ func (c *Candidate) close() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if c.conn != nil {
+
 		// Unblock recvLoop
 		close(c.closeCh)
 		// Close the conn

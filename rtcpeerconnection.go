@@ -789,6 +789,7 @@ func (pc *RTCPeerConnection) SetRemoteDescription(desc RTCSessionDescription) er
 			cert.x509Cert, cert.privateKey, fingerprint, fingerprintHash)
 		if err != nil {
 			fmt.Println("Failed to start manager", err)
+			return
 		}
 
 		// Temporary data channel glue

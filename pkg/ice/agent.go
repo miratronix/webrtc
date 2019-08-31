@@ -131,6 +131,7 @@ func (a *Agent) gatherCandidatesLocal() {
 	localIPs := localInterfaces()
 	for _, ip := range localIPs {
 		for _, network := range supportedNetworks {
+
 			conn, err := net.ListenUDP(network, &net.UDPAddr{IP: ip, Port: port})
 			if err != nil {
 				// fmt.Printf("could not listen %s %s\n", network, ip)
@@ -165,6 +166,7 @@ func (a *Agent) gatherCandidatesReflective(urls []*URL) {
 					fmt.Printf("could not allocate %s %s: %v\n", network, url, err)
 					continue
 				}
+
 				conn, err := net.ListenUDP(network, laddr)
 				if err != nil {
 					fmt.Printf("could not listen %s %s: %v\n", network, laddr, err)
@@ -342,6 +344,11 @@ func (a *Agent) run(t task) error {
 func (a *Agent) taskLoop() {
 	for {
 		select {
+
+		case <-a.done:
+			a.updateConnectionState(ConnectionStateClosed)
+			return
+
 		case <-a.connectivityChan:
 			if a.validateSelectedPair() {
 				a.checkKeepalive()
@@ -352,10 +359,6 @@ func (a *Agent) taskLoop() {
 		case t := <-a.taskChan:
 			// Run the task
 			t(a)
-
-		case <-a.done:
-			a.updateConnectionState(ConnectionStateClosed)
-			return
 		}
 	}
 }
@@ -393,6 +396,7 @@ func (a *Agent) checkKeepalive() {
 // pingAllCandidates sends STUN Binding Requests to all candidates
 // Note: the caller should hold the agent lock.
 func (a *Agent) pingAllCandidates() {
+
 	for networkType, localCandidates := range a.localCandidates {
 		if remoteCandidates, ok := a.remoteCandidates[networkType]; ok {
 
@@ -466,6 +470,7 @@ func (a *Agent) Close() error {
 			}
 			delete(agent.localCandidates, net)
 		}
+
 		for net, cs := range agent.remoteCandidates {
 			for _, c := range cs {
 				err := c.close()
