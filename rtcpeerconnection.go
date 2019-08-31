@@ -788,7 +788,9 @@ func (pc *RTCPeerConnection) SetRemoteDescription(desc RTCSessionDescription) er
 			remoteUfrag, remotePwd,
 			cert.x509Cert, cert.privateKey, fingerprint, fingerprintHash)
 		if err != nil {
-			fmt.Println("Failed to start manager", err)
+			if err.Error() != "agent closed" {
+				fmt.Println("Failed to start manager:", err)
+			}
 			return
 		}
 
